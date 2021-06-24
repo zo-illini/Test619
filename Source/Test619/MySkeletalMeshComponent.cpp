@@ -8,49 +8,42 @@ void UMySkeletalMeshComponent::BeginPlay()
 {
 	Super::BeginPlay();
 
-	//this->SetSimulatePhysics(true);
-	//this->SetEnableGravity(false);
-	//this->SetAllBodiesBelowPhysicsBlendWeight("thigh_l", LowerBodyPhysicsBlendWeight);
-	//this->SetAllBodiesBelowPhysicsBlendWeight("thigh_r", LowerBodyPhysicsBlendWeight);
-	//this->SetAllBodiesBelowPhysicsBlendWeight("spine_01", UpperBodyPhysicsBlendWeight);
-
-	//this->SetCollisionProfileName(TEXT("OverlapAllDynamic"));
-	//this->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
-
 	if (this->GetOwner()->GetAttachParentActor() != VehicleActor)
 	{
-		//GEngine->AddOnScreenDebugMessage(-1, 15.0f, FColor::Yellow, TEXT("Warning: MySkeletalMeshComponent's owner is not attached to its assigned vehicle's owner."));
 		this->GetOwner()->AttachToActor(VehicleActor, FAttachmentTransformRules::KeepWorldTransform);
 	}
 
 	check(VehicleActor);
-
 	VehicleComponent = Cast<UPrimitiveComponent>(VehicleActor->GetComponentsByTag(UPrimitiveComponent::StaticClass(), FName("Vehicle"))[0]);
 
 	check(VehicleComponent)
 
-	RelativeLocationToVehicle = GetRelativeLocation();
-
 	HasBegunPlay = true;
 }
 
-
-void UMySkeletalMeshComponent::TickComponent(float DeltaTime, enum ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
+void UMySkeletalMeshComponent::CompleteParallelAnimationEvaluation(bool bDoPostAnimEvaluation)
 {
-	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
+	Super::CompleteParallelAnimationEvaluation(bDoPostAnimEvaluation);
 
 	if (HasBegunPlay)
-		AddWorldOffset(VehicleComponent->GetPhysicsLinearVelocity() * GetWorld()->DeltaTimeSeconds);
-}
-
-void UMySkeletalMeshComponent::OnUpdateTransform(EUpdateTransformFlags UpdateTransformFlags, ETeleportType Teleport)
-{
-	Super::OnUpdateTransform(UpdateTransformFlags, Teleport);
-
-	if (HasBegunPlay && UpdateTransformFlags == EUpdateTransformFlags::PropagateFromParent)
 	{
-		SetRelativeLocation(RelativeLocationToVehicle);
-		//DebugDistance = VehicleComponent->GetComponentTransform().InverseTransformPosition(GetComponentLocation());
-	}
+		const UPhysicsAsset* const PhysicsAsset = GetPhysicsAsset();
 
+		for (int32 i = 0; i < Bodies.Num(); i++)
+		{
+			FBodyInstance* BodyInst = Bodies[i];
+			if (!ensure(BodyInst))
+			{
+				continue;
+			}
+			//if (BodyInst->IsInstanceSimulatingPhysics())
+			if (PhysicsAsset->SkeletalBodySetups.IsValidIndex(i) && !IsSimulatingPhysics(PhysicsAsset->SkeletalBodySetups[i]->BoneName))
+			{
+
+				FTransform NewTransform = BodyInst->GetUnrealWorldTransform();
+				NewTransform.AddToTranslation(VehicleComponent->GetPhysicsLinearVelocity() * GetWorld()->GetDeltaSeconds());
+				BodyInst->SetBodyTransform(NewTransform, ETeleportType::None);
+			}
+		}
+	}
 }

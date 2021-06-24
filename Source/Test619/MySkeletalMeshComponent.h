@@ -16,8 +16,8 @@ class TEST619_API UMySkeletalMeshComponent : public USkeletalMeshComponent
 
 public:
 	virtual void BeginPlay() override;
-	virtual void TickComponent(float DeltaTime, enum ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
-	virtual void OnUpdateTransform(EUpdateTransformFlags UpdateTransformFlags, ETeleportType Teleport = ETeleportType::None) override;
+	virtual void CompleteParallelAnimationEvaluation(bool bDoPostAnimEvaluation) override;
+
 
 	UPROPERTY(EditAnywhere)
 		FName VehicleComponentName;
@@ -26,7 +26,7 @@ public:
 		AActor* VehicleActor;
 
 	UPROPERTY(VisibleAnywhere)
-		UPrimitiveComponent * VehicleComponent;
+		UPrimitiveComponent* VehicleComponent;
 
 	UPROPERTY(VisibleAnywhere)
 		FVector RelativeLocationToVehicle;
@@ -42,4 +42,10 @@ public:
 
 	UPROPERTY(VisibleAnywhere)
 		FVector DebugDistance;
+
+	UPROPERTY(VisibleAnywhere)
+		FVector VehiclePhysicalVelocityCache;
+
+	UPROPERTY(VisibleAnywhere)
+		TArray<FTransform> KinematicBodyTransformsCache;
 };
